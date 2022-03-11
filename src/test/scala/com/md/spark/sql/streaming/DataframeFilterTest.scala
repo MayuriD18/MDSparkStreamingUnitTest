@@ -1,13 +1,16 @@
 package com.md.spark.sql.streaming
 
 import com.google.gson.{JsonIOException, JsonSyntaxException}
-import org.apache.spark.sql.{SQLContext, SparkSession}
+import org.apache.spark.sql.{Row, RowFactory, SQLContext, SparkSession}
 import org.junit.jupiter.api.{BeforeEach, DisplayName, Test}
 import com.md.spark.sql.streaming.DataframeFilter.Person
+import junit.framework.TestCase.assertEquals
 import org.apache.spark.sql.execution.streaming.{LongOffset, MemoryStream}
 import org.junit.Assert
 
 import java.io.FileNotFoundException
+import java.util
+import java.util.List
 
 class DataframeFilterTest {
 
@@ -29,52 +32,32 @@ class DataframeFilterTest {
 
 
   @Test
-  @DisplayName("Filtering the Input Stream should get filtered correctly")
-  @throws[JsonSyntaxException]
-  @throws[JsonIOException]
-  @throws[FileNotFoundException]
   def testStreamFiltering(): Unit = {
 
-
-    val inputData = Seq(Person("donna","india","finance"),
-      Person("dora","india","marketing"),
-      Person("dina","india","marketing"))
-
-    // we can use json here
+    val inputData = Seq(Person("donna","india","finance"), Person("dora","india","marketing"), Person("dina","india","marketing"))
 
     import org.apache.spark.sql.{Encoder, Encoders}
     implicit val personEncoder: Encoder[Person] = Encoders.product[Person]
 
-    var inputStream: MemoryStream[Person] = new MemoryStream[Person](1, spark.sqlContext,Some(5))
-
+    val inputStream: MemoryStream[Person] = new MemoryStream[Person](1, spark.sqlContext,Some(5))
     implicit val sqlCtx: SQLContext = spark.sqlContext
+    val sessions = inputStream.toDF()
 
-    val sessions = inputStream.toDS
+    val filteredDF = DataframeFilter.streamFiltering(sessions)
 
-    // calling out business logic which needs to be unit tested
-    val filteredDF = DataframeFilter.streamFiltering(sessions.toDF())
-
-    val streamingQuery = filteredDF
-      .writeStream
-      .format("memory")
-      .queryName("person")
-      .outputMode("append")
-      .start
+    val streamingQuery = filteredDF.writeStream.format("memory").queryName("person").outputMode("append").start
 
     // add data to the query in streaming way
-    val currentOffset = inputStream.addData(inputData)
+    inputStream.addData(inputData)
 
     // process the data which we added
     streamingQuery.processAllAvailable()
 
-    inputStream.commit(currentOffset.asInstanceOf[LongOffset])
+    val result = spark.sql("select * from person").collectAsList
 
-    val outputSize = spark.sql("select count(*) from person")
-      .collect()
-      .map(_.getAs[Long](0))
-      .head
+    assertEquals("Filtering the Input Stream should get filtered correctly", 2, result.size)
 
-    Assert.assertEquals(2,outputSize)
+    assertEquals(RowFactory.create("dora", "india", "marketing"), result.get(0))
 
   }
 }

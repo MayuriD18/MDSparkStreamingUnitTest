@@ -56,14 +56,14 @@ public class DataframeFilterJavaTest {
         StreamingQuery streamingQuery = filteredDF
                 .writeStream()
                 .format("memory")
-                .queryName("device")
+                .queryName("person")
                 .outputMode("append")
                 .start();
 
 
         streamingQuery.processAllAvailable();
 
-        List<Row> result = spark.sql("select * from device").collectAsList();
+        List<Row> result = spark.sql("select * from person").collectAsList();
 
         assertEquals("Filtering the Input Stream should get filtered correctly",2, result.size());
 
@@ -78,7 +78,7 @@ public class DataframeFilterJavaTest {
 
         streamingQuery.processAllAvailable();
 
-        result = spark.sql("select * from device").collectAsList();
+        result = spark.sql("select * from person").collectAsList();
 
         assertEquals("Filtering the Input Stream should get filtered correctly",4, result.size());
 

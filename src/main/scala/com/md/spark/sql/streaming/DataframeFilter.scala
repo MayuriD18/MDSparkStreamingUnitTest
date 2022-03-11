@@ -7,6 +7,19 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object DataframeFilter {
 
+
+  case class Person(name : String, address: String, department : String)
+
+
+
+  // Return the dataFrame having department marketing by using filter API
+  def streamFiltering(inputDF: DataFrame): DataFrame = {
+
+    inputDF.filter("department LIKE 'marketing'")
+
+  }
+
+
   def main(args: Array[String]): Unit = {
 
     val spark = SparkSession.builder()
@@ -45,17 +58,6 @@ object DataframeFilter {
 
   }
 
-
-  case class Person(name : String, address: String, department : String)
-
-
-
-  // Return the dataFrame having department marketing by using filter API
-  def streamFiltering(inputDF: DataFrame): DataFrame = {
-
-    inputDF.filter("department LIKE 'marketing'")
-
-  }
 
 }
 
